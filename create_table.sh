@@ -24,7 +24,6 @@ done
 read -p "Enter the name of the table: " table_name
 read -p "Enter the path where the table file should be created: " table_path
 
-# Create the table file
 table_file="$table_path/$table_name.txt"
 echo $table_header > $table_file
 
