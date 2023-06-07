@@ -8,17 +8,19 @@ if [ ! -f "$input_file" ]; then
     exit 1
 fi
 
-sed 's/  */\t/g' < "$input_file" | awk '
+file_name=$(basename "$input_file")
+file_name_without_extension="${file_name%.*}"
+
+sed 's/  */\t/g' < "$input_file" | awk -v file_name="$file_name_without_extension" '
 BEGIN {
     print ".TS"
     print "allbox;" 
     print "c s s s" 
     print "lb lb lb lb" 
     print "l l l l."
-    print "My Table" 
+    print file_name
 }
 {print}
 END {
     print ".TE" # end of table
 }' | tbl | nroff -Tdumb
-
