@@ -1,6 +1,6 @@
 #!/bin/bash
 
-read -p "Enter the directory name: " dir_name
+read -p "Enter the database name: " dir_name
 
 directories=$(find / -type d -name "$dir_name" 2>/dev/null)
 
