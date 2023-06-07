@@ -1,55 +1,42 @@
 #!/bin/bash
 
-add_column_headers() {
-  while true; do
-    echo "Enter the column headers (separated by tabs):"
-    read -a headers
-    joined_headers=$(IFS=$'\t'; echo "${headers[*]}")
-    if echo "${joined_headers}" | awk '/^[a-zA-Z0-9_-]+$/ { print }'; then
-      echo -e "$joined_headers" > "$table_file"
-      echo "Column headers added successfully."
-      break
-    else
-      echo "Invalid input. Column headers can only contain letters, numbers, and underscores."
-    fi
-  done
-}
+read -p "Enter the number of fields: " num_fields
+read -p "Enter the primary key field name: " primary_key
 
-write_content() {
-  while true; do
-    echo "Enter the content for each row (separated by tabs):"
-    read -a content
-    joined_content=$(IFS=$'\t'; echo "${content[*]}")
-    if echo "${joined_content}" | awk '/^[a-zA-Z0-9_]+$/ { print }'; then
-      echo -e "$joined_content" >> "$table_file"
-      echo "Content written successfully."
-      break
-    else
-      echo "Invalid input. Content can only contain letters, numbers, and underscores."
-    fi
-  done
-}
+declare -A field_types_regex
+field_types_regex["int"]='^[0-9]+$'
+field_types_regex["float"]='^[0-9]+([.][0-9]+)?$'
+field_types_regex["varchar"]='^.*$'
 
-create_table() {
-  echo "Enter the name of the table file:"
-  read table_file
-  touch "$table_file"
+table_header="$primary_key"
+for ((i=2; i<=num_fields; i++)); do
+  read -p "Enter field $i name: " field_name
+  read -p "Enter data type for field $field_name (int, float, varchar): " field_type
 
-  echo "Table '$table_file' created successfully."
+  if [[ -z ${field_types_regex[$field_type]} ]]; then
+    echo "Invalid data type. Please try again."
+    exit 1
+  fi
 
-  while true; do
-    echo "Table Menu"
-    echo "1. Add Column Headers"
-    echo "2. Write Table Content"
-    echo "3. Exit"
-    read -p "Enter your choice: " choice
-    case $choice in
-      1) add_column_headers ;;
-      2) write_content ;;
-      3) break ;;
-      *) echo "Invalid choice. Please try again." ;;
-    esac
-  done
-}
+  table_header+=", $field_name"
+done
 
-create_table
+read -p "Enter the name of the table: " table_name
+read -p "Enter the path where the table file should be created: " table_path
+
+# Create the table file
+table_file="$table_path/$table_name.txt"
+echo $table_header > $table_file
+
+echo "Enter the table content (press Ctrl+D when done): "
+auto_number=1
+while read -ra field_values; do
+  if [[ ${#field_values[@]} -ne $((num_fields - 1)) ]]; then
+    echo "Invalid number of fields entered. Please try again."
+    exit 1
+  fi
+  echo "$auto_number ${field_values[*]}" >> $table_file
+  auto_number=$((auto_number + 1))
+done
+
+echo "Table created successfully in $table_file."
