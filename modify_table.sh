@@ -1,120 +1,48 @@
 #!/bin/bash
 
-display_menu() {
-  echo "Please select an option:"
-  echo "1. Edit a specific column"
-  echo "2. Remove a specific column"
-  echo "3. Edit a specific row"
-  echo "4. Remove specific rows"
-  echo "5. Add a row"
-  echo "6. Manually edit the file"
-  echo "7. Exit"
-  echo
-}
+read -p "Enter the path to the table file: " table_file
 
-edit_column() {
-  echo "Enter the column number to edit:"
-  read column_number
-
-  echo "Enter the replacement value:"
-  read replacement_value
-
-  awk -v col="$column_number" -v val="$replacement_value" 'BEGIN{FS=OFS="\t"} {if (NR==1) {$col = val;} else {$col = val} print}' "$file_path" > temp.txt
-  mv temp.txt "$file_path"
-
-  echo "Column $column_number edited successfully!"
-  echo
-}
-
-remove_column() {
-  echo "Enter the column number to remove:"
-  read column_number
-
-  awk -v col="$column_number" 'BEGIN{FS=OFS="\t"}{ for (i=col; i<NF; i++) $i = $(i+1); NF--; print }' "$file_path" > temp.txt
-  mv temp.txt "$file_path"
-
-  echo "Column $column_number removed successfully!"
-  echo
-}
-
-edit_row() {
-  echo "Enter the row number to edit:"
-  read row_number
-
-  echo "Enter the replacement value (tab-separated columns):"
-  read -a replacement_values
-
-  awk -v row="$row_number" -v vals="${replacement_values[*]}" 'BEGIN{FS=OFS="\t"} {if (NR==row) {split(vals, a, "\t"); for(i=1; i<=NF; i++) $i=a[i];} print}' "$file_path" > temp.txt
-  mv temp.txt "$file_path"
-
-  echo "Row $row_number edited successfully!"
-  echo
-}
-
-remove_rows() {
-  echo "Enter the row numbers to remove (comma-separated):"
-  read row_numbers
-
-  sed -i "$(echo "$row_numbers" | sed 's/,/d;/g')d" "$file_path"
-
-  echo "Rows $row_numbers removed successfully!"
-  echo
-}
-
-add_row() {
-  echo "Enter the values for the new row (tab-separated columns):"
-  read -a new_row_values
-
-  echo "${new_row_values[*]}" >> "$file_path"
-
-  echo "New row added successfully!"
-  echo
-}
-
-manual_edit() {
-  echo "Manually editing the file. Press Enter to continue..."
-  read
-  nano "$file_path"
-  echo "File edited successfully!"
-  echo
-}
-
-echo "Enter the path to the text file:"
-read file_path
+if [[ ! -f $table_file ]]; then
+  echo "Table file not found."
+  exit 1
+fi
 
 while true; do
-  display_menu
+  echo "Menu:"
+  echo "1. Open table file manually"
+  echo "2. Remove row by primary key"
+  echo "3. Remove column"
+  echo "4. Edit row values"
+  echo "5. Exit"
+  read -p "Enter your choice: " choice
 
-  read -p "Option: " option
-  echo
-
-  case $option in
+  case $choice in
     1)
-      edit_column
+      nano $table_file
       ;;
     2)
-      remove_column
+      read -p "Enter the primary key of the row to remove: " primary_key
+      sed -i "/^$primary_key\s/d" $table_file
+      echo "Row removed successfully."
       ;;
     3)
-      edit_row
+      read -p "Enter the column number to remove (starting from 1): " column_number
+      awk -v col=$column_number -F, '{ $col = ""; sub(/,,/, ",") }1' OFS=, $table_file > temp.txt
+      mv temp.txt $table_file
+      echo "Column removed successfully."
       ;;
     4)
-      remove_rows
+      read -p "Enter the primary key of the row to edit: " primary_key
+      read -p "Enter the new values for the row (separated by tabs): " new_values
+      sed -i "/^$primary_key\s/s/.*/$primary_key $new_values/" $table_file
+      echo "Row edited successfully."
       ;;
     5)
-      add_row
-      ;;
-    6)
-      manual_edit
-      ;;
-    7)
-      echo "Exiting..."
-      break
+      echo "Exiting."
+      exit 0
       ;;
     *)
-      echo "Invalid option. Please try again."
-      echo
+      echo "Invalid choice. Please try again."
       ;;
   esac
 done
-
